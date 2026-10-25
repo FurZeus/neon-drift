@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07050f" />
+    <meta name="description" content="Neon Drift — gece pistinde zamana karşı 3D arcade yarış. Klavye ve gamepad desteği." />
+    <title>Neon Drift</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307050f'/%3E%3Cpath d='M14 46 L30 14 H40 L24 46Z' fill='%23ff2bd6'/%3E%3Cpath d='M30 46 L46 14 H52 L36 46Z' fill='%2329f0ff'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <div id="game" aria-hidden="true"></div>
+
+    <div id="ui">
+      <!-- Yükleniyor -->
+      <section class="screen screen-loading is-active" id="screen-loading" aria-live="polite">
+        <div class="loading-box">
+          <div class="wordmark wordmark-sm"><span class="wm-a">NEON</span><span class="wm-b">DRIFT</span></div>
+          <div class="loading-bar"><i id="loading-fill"></i></div>
+          <p class="loading-text" id="loading-text">Pist hazırlanıyor…</p>
+        </div>
+      </section>
+
+      <!-- WebGL hatası -->
+      <section class="screen screen-error" id="screen-error" role="alert">
+        <div class="panel error-panel">
+          <h2>Oyun başlatılamadı</h2>
+          <p id="error-text">Tarayıcınız WebGL desteklemiyor veya grafik sürücüsü devre dışı.</p>
+        </div>
+      </section>
+
+      <!-- HUD -->
+      <div class="hud" id="hud" hidden>
+        <div class="hud-tl hud-panel">
+          <div class="hud-lapbox">
+            <span class="hud-label" id="hud-lap-label">TUR</span>
+            <span class="hud-lap"><b id="hud-lap">1</b><span class="hud-lap-of">/<span id="hud-laps">3</span></span></span>
+          </div>
+          <div class="hud-rows">
+            <div class="hud-row"><span class="hud-label" id="hud-row1-label">TUR</span><span class="mono" id="hud-laptime">0:00.000</span></div>
+            <div class="hud-row"><span class="hud-label" id="hud-row2-label">EN İYİ</span><span class="mono" id="hud-best">—</span></div>
+            <div class="hud-row hud-delta-row"><span class="hud-label" id="hud-row3-label">FARK</span><span class="mono" id="hud-delta">—</span></div>
+          </div>
+        </div>
+
+        <div class="hud-tc">
+          <span class="hud-label">TOPLAM SÜRE</span>
+          <span class="mono hud-total" id="hud-total">0:00.000</span>
+          <span class="hud-target" id="hud-target"></span>
+        </div>
+
+        <div class="hud-tr">
+          <div class="pad-pill" id="hud-pad" data-state="off">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10a5 5 0 0 1 5 5v1.5a3.5 3.5 0 0 1-6.2 2.2L14.6 14H9.4l-1.2 1.7A3.5 3.5 0 0 1 2 13.5V12a5 5 0 0 1 5-5Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 10v4M5 12h4" stroke="currentColor" stroke-width="1.6"/><circle cx="16" cy="11" r="1" fill="currentColor"/><circle cx="18" cy="13" r="1" fill="currentColor"/></svg>
+            <span class="pad-text">Klavye</span>
+          </div>
+          <svg class="minimap" id="minimap" aria-label="Pist haritası"></svg>
+        </div>
+
+        <div class="hud-br">
+          <div class="speedo">
+            <svg viewBox="0 0 200 200" class="speedo-svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="speedGrad" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0" stop-color="#29f0ff" />
+                  <stop offset="1" stop-color="#ff2bd6" />
+                </linearGradient>
+              </defs>
+              <path class="speedo-track" pathLength="100" d="M 43.4 156.6 A 80 80 0 1 1 156.6 156.6" />
+              <path class="speedo-fill" id="speedo-fill" pathLength="100" d="M 43.4 156.6 A 80 80 0 1 1 156.6 156.6" />
+            </svg>
+            <div class="speedo-readout">
+              <span class="speedo-num mono" id="hud-speed">0</span>
+              <span class="speedo-unit">KM/SA</span>
+            </div>
+          </div>
+          <div class="drift-meter" id="drift-meter" data-level="0">
+            <span class="hud-label">DRİFT</span>
+            <div class="drift-bar"><i id="drift-fill"></i><span class="drift-tick"></span></div>
+            <span class="drift-state" id="drift-state">TURBO HAZIR DEĞİL</span>
+          </div>
+        </div>
+
+        <div class="hud-bl" id="hud-hints"></div>
+
+        <div class="hud-flash" id="hud-flash" aria-live="polite"></div>
+        <div class="hud-warning" id="hud-warning" hidden>
+          <b id="hud-warning-title">TERS YÖN</b>
+          <span id="hud-warning-sub"></span>
+        </div>
+        <div class="tutorial" id="tutorial" hidden></div>
+        <button class="hud-pause-btn" id="hud-pause" type="button" aria-label="Duraklat">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+        </button>
+      </div>
+
+      <div class="countdown" id="countdown" aria-live="assertive"></div>
+
+      <!-- Ana menü -->
+      <section class="screen screen-menu" id="screen-menu">
+        <div class="menu-main">
+          <div class="wordmark"><span class="wm-a">NEON</span><span class="wm-b">DRIFT</span></div>
+          <p class="tagline">Gece pistinde zamana karşı tek kişilik yarış. Virajlarda drift at, turbo kazan, kendi hayaletini geç.</p>
+          <nav class="menu-buttons" aria-label="Ana menü">
+            <button class="opt opt-track" type="button" data-nav data-setting="track">
+              <span class="opt-label">Pist<small id="menu-track-blurb"></small></span>
+              <span class="opt-value"><i class="opt-arrow" data-dir="-1" aria-hidden="true">◀</i><b id="menu-track-name">Neon Pist</b><i class="opt-arrow" data-dir="1" aria-hidden="true">▶</i></span>
+            </button>
+            <button class="btn btn-primary" type="button" data-nav data-action="start" data-autofocus>
+              <span>Yarışı Başlat</span>
+            </button>
+            <button class="btn" type="button" data-nav data-action="garage"><span>Garaj</span></button>
+            <button class="btn" type="button" data-nav data-action="settings"><span>Ayarlar</span></button>
+            <button class="btn" type="button" data-nav data-action="controls"><span>Kontroller</span></button>
+          </nav>
+          <div class="menu-record" id="menu-record"></div>
+        </div>
+        <aside class="menu-aside">
+          <div class="aside-block">
+            <h3>Nasıl oynanır</h3>
+            <ul class="howto" id="menu-howto"></ul>
+          </div>
+          <div class="pad-status" id="menu-pad" data-state="off">
+            <span class="pad-dot"></span>
+            <span class="pad-status-text" id="menu-pad-text">Gamepad algılanmadı — bağlayıp herhangi bir tuşa basın</span>
+          </div>
+        </aside>
+        <footer class="menu-footer" id="menu-footer"></footer>
+      </section>
+
+      <!-- Garaj -->
+      <section class="screen screen-garage" id="screen-garage" aria-labelledby="garage-name">
+        <div class="garage-panel">
+          <p class="garage-kicker">Garaj <span id="garage-index">1 / 5</span></p>
+          <h2 class="garage-name" id="garage-name">Araç</h2>
+          <p class="garage-blurb" id="garage-blurb"></p>
+          <div class="garage-stats" id="garage-stats"></div>
+          <p class="garage-status" id="garage-status"></p>
+          <nav class="garage-actions" aria-label="Garaj">
+            <button class="opt opt-car" type="button" data-nav data-setting="car" data-autofocus>
+              <span class="opt-label">Araç<small id="garage-select-hint">◀ ▶ ile değiştir</small></span>
+              <span class="opt-value"><i class="opt-arrow" data-dir="-1" aria-hidden="true">◀</i><b id="garage-car-short">—</b><i class="opt-arrow" data-dir="1" aria-hidden="true">▶</i></span>
+            </button>
+            <button class="opt" type="button" data-nav data-setting="paint">
+              <span class="opt-label">Renk</span>
+              <span class="opt-value"><i class="opt-arrow" data-dir="-1" aria-hidden="true">◀</i><b id="garage-paint">—</b><i class="opt-arrow" data-dir="1" aria-hidden="true">▶</i></span>
+            </button>
+            <button class="btn btn-primary" type="button" data-nav data-action="back"><span>Tamam</span></button>
+          </nav>
+          <p class="garage-credit" id="garage-credit"></p>
+        </div>
+      </section>
+
+      <!-- Ayarlar -->
+      <section class="screen screen-sub" id="screen-settings" aria-labelledby="settings-title">
+        <div class="sub-panel">
+          <header class="sub-head">
+            <h2 id="settings-title">Ayarlar</h2>
+            <p>Değiştirmek için ◀ ▶ (ok tuşları / D-pad) ya da tıklayın.</p>
+          </header>
+          <div class="settings-list" id="settings-list"></div>
+          <div class="sub-actions">
+            <button class="btn btn-ghost" type="button" data-nav data-action="back"><span>Geri</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Kontroller -->
+      <section class="screen screen-sub" id="screen-controls" aria-labelledby="controls-title">
+        <div class="sub-panel">
+          <header class="sub-head">
+            <h2 id="controls-title">Kontroller</h2>
+            <p>Gamepad bağlıysa ikisi birlikte de kullanılabilir.</p>
+          </header>
+          <table class="controls-table">
+            <thead>
+              <tr><th>Eylem</th><th>Klavye</th><th>Gamepad</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Yön</td><td><kbd>A</kbd> <kbd>D</kbd> / <kbd>←</kbd> <kbd>→</kbd></td><td>Sol analog çubuk</td></tr>
+              <tr><td>Gaz</td><td><kbd>W</kbd> / <kbd>↑</kbd></td><td><kbd>RT</kbd> sağ tetik</td></tr>
+              <tr><td>Fren / geri</td><td><kbd>S</kbd> / <kbd>↓</kbd></td><td><kbd>LT</kbd> sol tetik</td></tr>
+              <tr><td>Drift / el freni</td><td><kbd>Space</kbd></td><td><kbd>A</kbd> / <kbd>✕</kbd></td></tr>
+              <tr><td>Piste geri dön</td><td><kbd>R</kbd></td><td><kbd>Y</kbd> / <kbd>△</kbd></td></tr>
+              <tr><td>Duraklat</td><td><kbd>Esc</kbd></td><td><kbd>Start</kbd> / <kbd>Options</kbd></td></tr>
+              <tr><td>Menüde gezinme</td><td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Enter</kbd></td><td>D-pad / çubuk, <kbd>A</kbd> onay, <kbd>B</kbd> geri</td></tr>
+            </tbody>
+          </table>
+          <div class="pad-test" id="pad-test" data-state="off">
+            <div class="pad-test-head"><span class="pad-dot"></span><b>Kumanda testi</b></div>
+            <div class="pad-test-body" id="pad-test-body">Kumanda algılanmadı.</div>
+            <p class="pad-tip" id="pad-tip"></p>
+          </div>
+          <div class="drift-explainer">
+            <b>Drift nasıl atılır?</b>
+            Viraja girerken direksiyonu kır ve <kbd>Space</kbd> / <kbd>A</kbd> tuşunu basılı tut. Araç kayarak daha keskin döner.
+            Drift sürdükçe şarj dolar: <span class="c-cyan">mavi</span> ve <span class="c-mag">pembe</span> seviye.
+            Tuşu bırakınca seviyeye göre <b>turbo</b> kazanırsın. Ters direksiyon drifti sonlandırır.
+          </div>
+          <div class="credits" id="credits"></div>
+          <div class="sub-actions">
+            <button class="btn btn-ghost" type="button" data-nav data-action="back" data-autofocus><span>Geri</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Duraklatma -->
+      <section class="screen screen-overlay" id="screen-pause" aria-labelledby="pause-title">
+        <div class="overlay-panel">
+          <h2 class="overlay-title" id="pause-title">Duraklatıldı</h2>
+          <p class="overlay-sub" id="pause-sub"></p>
+          <nav class="menu-buttons">
+            <button class="btn btn-primary" type="button" data-nav data-action="resume" data-autofocus><span>Devam Et</span></button>
+            <button class="btn" type="button" data-nav data-action="restart"><span>Yeniden Başlat</span></button>
+            <button class="btn" type="button" data-nav data-action="settings"><span>Ayarlar</span></button>
+            <button class="btn btn-ghost" type="button" data-nav data-action="menu"><span>Ana Menü</span></button>
+          </nav>
+        </div>
+      </section>
+
+      <!-- Sonuç -->
+      <section class="screen screen-overlay screen-results" id="screen-results" aria-labelledby="results-title">
+        <div class="overlay-panel results-panel">
+          <p class="results-kicker" id="results-kicker">Yarış tamamlandı</p>
+          <h2 class="results-time mono" id="results-title">0:00.000</h2>
+          <div class="results-badges" id="results-badges"></div>
+          <div class="results-grid">
+            <div class="results-laps">
+              <h3 id="results-laps-title">Turlar</h3>
+              <ol id="results-laps"></ol>
+            </div>
+            <div class="results-targets">
+              <h3>Hedefler</h3>
+              <ul id="results-targets"></ul>
+            </div>
+          </div>
+          <nav class="menu-buttons menu-buttons-row">
+            <button class="btn btn-primary" type="button" data-nav data-action="restart" data-autofocus><span>Tekrar Yarış</span></button>
+            <button class="btn btn-ghost" type="button" data-nav data-action="menu"><span>Ana Menü</span></button>
+          </nav>
+        </div>
+      </section>
+
+      <div class="toasts" id="toasts" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

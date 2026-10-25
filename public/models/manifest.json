@@ -1,0 +1,34 @@
+{
+  "cars": {
+    "corolla93": {
+      "file": "corolla93.glb",
+      "bytes": 1624112,
+      "triangles": 126868
+    },
+    "egea": {
+      "file": "egea.glb",
+      "bytes": 2141044,
+      "triangles": 149988
+    },
+    "doblo": {
+      "file": "doblo.glb",
+      "bytes": 239584,
+      "triangles": 29489
+    },
+    "sahin": {
+      "file": "sahin.glb",
+      "bytes": 760576,
+      "triangles": 107009
+    },
+    "golf6b": {
+      "file": "golf6b.glb",
+      "bytes": 424060,
+      "triangles": 44995
+    },
+    "golf6": {
+      "file": "golf6.glb",
+      "bytes": 2090368,
+      "triangles": 168383
+    }
+  }
+}
